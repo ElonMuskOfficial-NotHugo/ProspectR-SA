@@ -1,0 +1,60 @@
+# Bundler
+/.bundle/
+/vendor/bundle
+
+# Ruby/Rails
+*.rbc
+*.sassc
+.sass-cache
+capistrano/
+/log/*
+!/log/.keep
+/tmp/*
+!/tmp/.keep
+!/tmp/pids/
+!/tmp/pids/.keep
+!/tmp/storage/
+!/tmp/storage/.keep
+
+# SQLite databases
+/db/*.sqlite3
+/db/*.sqlite3-journal
+/db/*.sqlite3.*/
+
+# Storage (Active Storage)
+/storage/*
+!/storage/.keep
+
+# Node
+/node_modules
+/yarn-error.log
+yarn-debug.log*
+
+# Environment variables
+.env
+.env*.local
+
+# Rails credentials — NEVER commit the master key
+/config/master.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# RubyMine / JetBrains
+.idea/
+
+# Byebug
+.byebug_history
+
+# Coverage
+/coverage/
+
+# Pidfiles
+/tmp/pids/*.pid
+
+# Kamal secrets
+.kamal/secrets
