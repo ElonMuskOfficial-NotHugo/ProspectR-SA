@@ -3,10 +3,18 @@ module Api
     def index
       businesses = Business.includes(:audit_result).all
 
+      if params[:search].present?
+        term = "%#{params[:search].gsub('%','').gsub('_','\_')}%"
+        businesses = businesses.where(
+          "name LIKE :q OR city LIKE :q OR category LIKE :q OR phone LIKE :q OR address LIKE :q",
+          q: term
+        )
+      end
+
       businesses = businesses.by_city(params[:city])         if params[:city].present?
       businesses = businesses.by_province(params[:province]) if params[:province].present?
       businesses = businesses.by_source(params[:source])     if params[:source].present?
-      businesses = businesses.where("category ILIKE ?", "%#{params[:category]}%") if params[:category].present?
+      businesses = businesses.where("category LIKE ?", "%#{params[:category]}%") if params[:category].present?
 
       if params[:min_score].present?
         businesses = businesses.joins(:audit_result).where("audit_results.score >= ?", params[:min_score].to_i)

@@ -396,7 +396,7 @@
         </div>
 
         <div class="table-wrap" style="max-width:700px;">
-          <div class="table-header"><strong>Recent Scrape Jobs</strong><button class="btn btn-ghost btn-sm" onclick="loadJobs()">↻</button></div>
+          <div class="table-header"><strong>Recent Scrape Jobs</strong><button class="btn btn-ghost btn-sm" onclick="loadJobs('scrape-jobs-list')">↻</button></div>
           <div class="jobs-list" id="scrape-jobs-list" style="padding:12px;"></div>
         </div>
       </div>
@@ -547,10 +547,22 @@
           <div class="job-count">${j.results_count > 0 ? j.results_count + ' found' : j.status === 'running' ? '<span class="spinner"></span>' : ''}</div>
         </div>`).join('');
 
-      // Auto-poll if any jobs are running
+      // Auto-poll if any jobs are running; reload Prospects + stats when they finish
       const anyRunning = jobs.some(j => j.status === 'running' || j.status === 'pending');
       clearTimeout(jobPollTimer);
-      if (anyRunning) jobPollTimer = setTimeout(() => { loadJobs(targetId); if(targetId==='jobs-list') loadStats(); }, 3000);
+      if (anyRunning) {
+        jobPollTimer = setTimeout(() => {
+          loadJobs(targetId);
+          loadStats();
+        }, 3000);
+      } else if (window._hadRunningJobs) {
+        // Jobs just finished — refresh Prospects if it's visible
+        loadStats();
+        if (document.getElementById('page-prospects')?.classList.contains('active')) {
+          loadBusinesses();
+        }
+      }
+      window._hadRunningJobs = anyRunning;
     } catch(e) { console.error('Jobs error', e); }
   }
 
