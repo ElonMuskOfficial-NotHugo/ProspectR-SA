@@ -7,7 +7,7 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 
 # Pin psych to the version bundled with Ruby 3.4 (already compiled — no build needed)
-gem "psych", "~> 5.2.2"
+gem "psych", "~> 5.3.1"
 
 # HTTP client for scraping
 gem "httparty"
