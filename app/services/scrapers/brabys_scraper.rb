@@ -2,7 +2,9 @@ require 'nokogiri'
 require 'httparty'
 
 class Scrapers::BrabysScraper
-  BASE_URL = "https://www.brabys.com"
+  # Brabys.com is protected by Cloudflare and returns 403 for all automated
+  # requests including on the homepage. Scraping is not possible without a
+  # headless browser. This scraper is disabled — use Yellow Pages instead.
 
   def initialize(category:, location:, max_pages: 5)
     @category  = category
@@ -11,9 +13,15 @@ class Scrapers::BrabysScraper
   end
 
   def scrape
+    Rails.logger.warn "[Brabys] Scraping disabled: Brabys.com blocks automated requests (Cloudflare 403). Use Yellow Pages or Google Places instead."
+    0
+  end
+
+  # DISABLED — kept for reference only
+  def scrape_disabled
     results = []
     (1..@max_pages).each do |page|
-      url  = "#{BASE_URL}/search/?query=#{CGI.escape(@category)}&location=#{CGI.escape(@location)}&page=#{page}"
+      url  = "https://www.brabys.com/search_results?q=#{CGI.escape(@category)}&location_value=#{CGI.escape(@location)}&page=#{page}"
       html = fetch(url)
       break if html.nil?
 
