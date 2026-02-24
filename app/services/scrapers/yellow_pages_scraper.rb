@@ -63,8 +63,9 @@ class Scrapers::YellowPagesScraper
       Rails.logger.warn "[YellowPages] Error on page #{page}: #{e.message}"
     end
 
-    save_results(results)
-    results.length
+    new_count = save_results(results)
+    Rails.logger.info "[YellowPages] Scraped #{results.length} total, #{new_count} new"
+    new_count
   end
 
   private
@@ -127,8 +128,8 @@ class Scrapers::YellowPagesScraper
     parts.last&.gsub(/\d+/, '')&.strip&.presence
   end
 
-  SA_PROVINCES = %w[Gauteng Limpopo Mpumalanga "North West" "Northern Cape"
-                    "Free State" "KwaZulu-Natal" "Eastern Cape" "Western Cape"].freeze
+  SA_PROVINCES = ['Gauteng', 'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape',
+                  'Free State', 'KwaZulu-Natal', 'Eastern Cape', 'Western Cape'].freeze
 
   def extract_province(address)
     return nil if address.blank?
@@ -136,13 +137,18 @@ class Scrapers::YellowPagesScraper
   end
 
   def save_results(results)
+    new_count = 0
     results.each do |attrs|
-      Business.find_or_create_by(name: attrs[:name], city: attrs[:city]) do |b|
-        b.assign_attributes(attrs)
+      biz = Business.find_or_initialize_by(name: attrs[:name], city: attrs[:city])
+      if biz.new_record?
+        biz.assign_attributes(attrs)
+        biz.save!
+        new_count += 1
       end
-    rescue ActiveRecord::RecordNotUnique
-      # skip duplicates
+    rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+      # skip duplicates / validation failures
     end
+    new_count
   end
 
   def default_headers
