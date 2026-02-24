@@ -1,9 +1,13 @@
-# This file should ensure the existence of records required to run the application in every environment (production,
-# development, test). The code here should be idempotent so that it can be executed at any point in every environment.
-# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
-#
-# Example:
-#
-#   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
-#     MovieGenre.find_or_create_by!(name: genre_name)
-#   end
+# Default settings
+[
+  { key: 'default_province',      value: 'Western Cape' },
+  { key: 'default_city',          value: 'Cape Town' },
+  { key: 'default_category',      value: 'restaurant' },
+  { key: 'enabled_sources',       value: 'yellow_pages,brabys' },
+  { key: 'audit_concurrency',     value: '5' },
+  { key: 'google_places_api_key', value: '' }
+].each do |s|
+  Setting.find_or_create_by(key: s[:key]) { |r| r.value = s[:value] }
+end
+
+puts "Seeds loaded: #{Setting.count} settings"
