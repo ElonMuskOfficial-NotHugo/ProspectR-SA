@@ -346,6 +346,14 @@
             </select>
           </div>
           <div class="filter-group">
+            <label>Website</label>
+            <select id="f-website" onchange="loadBusinesses()">
+              <option value="">All</option>
+              <option value="has">Has Website</option>
+              <option value="none">✕ No Website</option>
+            </select>
+          </div>
+          <div class="filter-group">
             <label>Min Score</label>
             <input type="number" id="f-min-score" placeholder="0–100" min="0" max="100" style="width:90px;" oninput="debounceFilter()" />
           </div>
@@ -690,7 +698,7 @@
 
   function clearFilters() {
     ['f-search','f-city','f-min-score'].forEach(id => document.getElementById(id).value = '');
-    ['f-province','f-source','f-quality'].forEach(id => document.getElementById(id).value = '');
+    ['f-province','f-source','f-quality','f-website'].forEach(id => document.getElementById(id).value = '');
     loadBusinesses();
   }
 
@@ -702,6 +710,7 @@
     const province = document.getElementById('f-province')?.value;
     const source   = document.getElementById('f-source')?.value;
     const quality  = document.getElementById('f-quality')?.value;
+    const website  = document.getElementById('f-website')?.value;
     const minScore = document.getElementById('f-min-score')?.value;
 
     if (search)   params.append('search', search);
@@ -709,6 +718,7 @@
     if (province) params.append('province', province);
     if (source)   params.append('source', source);
     if (quality)  params.append('quality', quality);
+    if (website)  params.append('website', website);
     if (minScore) params.append('min_score', minScore);
     params.append('offset', page * PAGE_SIZE);
     params.append('limit',  PAGE_SIZE);
@@ -894,11 +904,12 @@
     try {
       toast('Generating PDF…');
       const params = new URLSearchParams();
-      ['f-city','f-province','f-source','f-quality','f-min-score'].forEach(id => {
+      ['f-city','f-province','f-source','f-quality','f-website','f-min-score'].forEach(id => {
         const el = document.getElementById(id);
         if (el?.value) {
-          const key = id.replace('f-','').replace('-','_');
-          params.append(key === 'min_score' ? 'min_score' : key, el.value);
+          const keyMap = { 'f-city':'city','f-province':'province','f-source':'source',
+                          'f-quality':'quality','f-website':'website','f-min-score':'min_score' };
+          params.append(keyMap[id], el.value);
         }
       });
       const blob = await api('/export/pdf?' + params.toString());

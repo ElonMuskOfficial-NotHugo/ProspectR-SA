@@ -29,6 +29,13 @@ module Api
         end
       end
 
+      if params[:website].present?
+        case params[:website]
+        when 'has'  then businesses = businesses.has_website
+        when 'none' then businesses = businesses.no_website
+        end
+      end
+
       businesses = businesses.recently_added
 
       total = businesses.count
