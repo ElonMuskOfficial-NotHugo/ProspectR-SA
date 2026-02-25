@@ -29,19 +29,41 @@ class Scrapers::YellowPagesScraper
       html = fetch(url)
       break if html.nil?
 
-      doc   = Nokogiri::HTML(html)
-      cards = doc.css(CARD_SELECTOR)
-      Rails.logger.info "[YellowPages] Page #{page}: #{cards.length} cards at #{url}"
-      break if cards.empty?
+      doc       = Nokogiri::HTML(html)
+      page_data = parse_next_data(doc)
+      cards_raw = page_data&.dig("props", "pageProps", "results") || []
 
-      cards.each do |card|
-        name    = card.at_css(NAME_SELECTOR)&.text&.strip
-        address = card.at_css(ADDRESS_SELECTOR)&.text&.strip
-        detail_path = card.at_css('a')&.[]('href')
+      # Fall back to CSS selector parsing if __NEXT_DATA__ has no results
+      if cards_raw.empty?
+        cards_raw = doc.css(CARD_SELECTOR).map do |card|
+          name    = card.at_css(NAME_SELECTOR)&.text&.strip
+          address = card.at_css(ADDRESS_SELECTOR)&.text&.strip
+          href    = card.at_css('a')&.[]('href')
+          { "name" => name, "address_text" => address, "detail_href" => href }
+        end.reject { |c| c["name"].blank? }
+      end
 
+      Rails.logger.info "[YellowPages] Page #{page}: #{cards_raw.length} results at #{url}"
+      break if cards_raw.empty?
+
+      cards_raw.each do |card|
+        # Data from __NEXT_DATA__ results array
+        name    = card["name"].to_s.strip
         next if name.blank?
 
-        city = extract_city(address) || @location.split(',').first.strip.titleize
+        addr_obj = card["address"]
+        address  = if addr_obj.is_a?(Hash)
+          [addr_obj["address1"], addr_obj["locality"], addr_obj["city"],
+           addr_obj["postcode"], addr_obj["province"]].compact.join(", ")
+        else
+          card["address_text"].to_s
+        end
+
+        city     = addr_obj&.dig("city") || extract_city(address) || @location.split(',').first.strip.titleize
+        province = addr_obj&.dig("province") || extract_province(address)
+
+        detail_path = card["detail_href"] ||
+                      (card["store_id"].present? ? "/biz/store/#{name.parameterize}/#{card['store_id']}" : nil)
 
         phone, website = if @fetch_details
           result = fetch_detail_data(detail_path)
@@ -57,7 +79,7 @@ class Scrapers::YellowPagesScraper
           address:     address,
           website_url: website,
           city:        city,
-          province:    extract_province(address),
+          province:    province,
           source:      'yellow_pages',
           category:    @category,
           scraped_at:  Time.current
@@ -75,44 +97,39 @@ class Scrapers::YellowPagesScraper
 
   private
 
-  # Fetch phone + business website from the detail page JSON-LD.
+  # Fetch phone + business website from the detail page __NEXT_DATA__ blob.
   def fetch_detail_data(path)
     return [nil, nil] if path.blank?
     url  = path.start_with?('http') ? path : "#{BASE_URL}#{path}"
     html = fetch(url)
     return [nil, nil] if html.nil?
 
-    doc = Nokogiri::HTML(html)
-    phone   = nil
-    website = nil
+    doc   = Nokogiri::HTML(html)
+    store = parse_next_data(doc)&.dig("props", "pageProps", "storeData")
+    return [nil, nil] if store.nil?
 
-    doc.css("script[type='application/ld+json']").each do |script|
-      data = JSON.parse(script.text) rescue next
-      next unless data.is_a?(Hash)
+    # phone is an array of strings e.g. ["0217611528"]
+    phone = Array(store["phone"]).first&.to_s&.gsub(/\s+/, '')&.presence
 
-      if data['telephone'].present?
-        phone = data['telephone'].to_s.gsub(/\s+/, '')
-      end
-
-      # Find an external website — skip yep.co.za / yellowpages.co.za URLs
-      raw_url = data['url'].to_s
-      if raw_url.present? && raw_url !~ /yep\.co\.za|yellowpages\.co\.za/i
-        website = raw_url.start_with?('http') ? raw_url : "https://#{raw_url}"
-      end
-
-      # Also check sameAs array
-      Array(data['sameAs']).each do |u|
-        next if u =~ /yep\.co\.za|yellowpages\.co\.za|facebook|instagram|twitter|linkedin/i
-        if u.start_with?('http')
-          website ||= u
-        end
-      end
+    # website is a plain string — may lack scheme
+    raw_url = store["website"].to_s.strip
+    website = if raw_url.present? && raw_url !~ /yep\.co\.za|yellowpages\.co\.za/i
+      raw_url.start_with?('http') ? raw_url : "https://#{raw_url}"
     end
 
     [phone, website]
   rescue => e
     Rails.logger.warn "[YellowPages] Detail fetch failed for #{path}: #{e.message}"
     [nil, nil]
+  end
+
+  # Parse the Next.js __NEXT_DATA__ JSON embedded in every page.
+  def parse_next_data(doc)
+    script = doc.at_css("script#__NEXT_DATA__")
+    return nil unless script
+    JSON.parse(script.text)
+  rescue JSON::ParserError
+    nil
   end
 
   def fetch(url)
@@ -149,6 +166,12 @@ class Scrapers::YellowPagesScraper
         biz.assign_attributes(attrs)
         biz.save!
         new_count += 1
+      else
+        # Backfill phone and website if they were missing from a previous scrape
+        updates = {}
+        updates[:phone]       = attrs[:phone]       if attrs[:phone].present?       && biz.phone.blank?
+        updates[:website_url] = attrs[:website_url] if attrs[:website_url].present? && biz.website_url.blank?
+        biz.update!(updates) if updates.any?
       end
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
       # skip duplicates / validation failures
