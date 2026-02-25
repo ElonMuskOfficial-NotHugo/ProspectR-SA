@@ -12,9 +12,10 @@ Rails.application.routes.draw do
     delete 'businesses/:id',    to: 'businesses#destroy'
 
     # Scraping
-    get  'scrape_jobs',     to: 'scrape_jobs#index'
-    post 'scrape_jobs',     to: 'scrape_jobs#create'
-    get  'scrape_jobs/:id', to: 'scrape_jobs#show'
+    get  'scrape_jobs',      to: 'scrape_jobs#index'
+    post 'scrape_jobs',      to: 'scrape_jobs#create'
+    post 'scrape_jobs/bulk', to: 'scrape_jobs#bulk'
+    get  'scrape_jobs/:id',  to: 'scrape_jobs#show'
 
     # Auditing
     post 'audits',                       to: 'audit_results#create'

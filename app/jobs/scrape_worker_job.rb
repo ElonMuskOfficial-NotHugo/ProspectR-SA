@@ -8,17 +8,22 @@ class ScrapeWorkerJob < ApplicationJob
     'cipc'          => Scrapers::CipcScraper
   }.freeze
 
-  def perform(scrape_job_id)
+  def perform(scrape_job_id, fetch_details: true, max_pages: 5)
     job = ScrapeJob.find(scrape_job_id)
     job.mark_running!
 
     scraper_class = SCRAPER_MAP[job.source]
     raise "Unknown source: #{job.source}" unless scraper_class
 
-    count = if job.source == 'cipc'
+    count = if job.source == 'yellow_pages'
+      scraper_class.new(
+        category:      job.category,
+        location:      job.location,
+        max_pages:     max_pages,
+        fetch_details: fetch_details
+      ).scrape
+    elsif job.source == 'cipc'
       scraper_class.new(keyword: job.category, location: job.location).scrape
-    elsif job.source == 'google_places'
-      scraper_class.new(category: job.category, location: job.location).scrape
     else
       scraper_class.new(category: job.category, location: job.location).scrape
     end

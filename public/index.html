@@ -188,6 +188,20 @@
     .job-info .meta  { font-size: .75rem; color: var(--gray400); margin-top: 2px; }
     .job-count { font-size: 1.2rem; font-weight: 700; color: var(--dark); }
 
+    /* Bulk scrape checks */
+    .bulk-checks {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 6px; max-height: 200px; overflow-y: auto; padding: 8px;
+      border: 1px solid var(--gray200); border-radius: 6px; background: var(--gray50);
+    }
+    .bulk-checks label { display: flex; align-items: center; gap: 6px; font-size: .82rem; cursor: pointer; }
+    .bulk-toggle-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .estimate-badge {
+      display: inline-block; background: #eff6ff; color: var(--blue);
+      border: 1px solid #bfdbfe; border-radius: 6px; padding: 4px 10px;
+      font-size: .82rem; font-weight: 600; margin-top: 10px;
+    }
+
     /* Settings */
     .settings-card {
       background: var(--white); border-radius: 10px; padding: 24px 28px;
@@ -371,9 +385,11 @@
 
       <!-- Scrape Page -->
       <div id="page-scrape" class="page">
-        <div style="max-width:600px;">
+        <div style="max-width:640px;">
+
+          <!-- Single scrape -->
           <div class="settings-card" style="margin-bottom:20px;">
-            <h2>🔍 Run a New Scrape</h2>
+            <h2>🔍 Single Scrape</h2>
             <div class="form-group">
               <label>Category / Business Type</label>
               <input type="text" id="sc-category" value="restaurant" placeholder="e.g. plumber, restaurant, accountant" />
@@ -386,12 +402,112 @@
               <label>Sources</label>
               <div class="checkbox-group" id="sc-sources">
                 <label><input type="checkbox" value="yellow_pages" checked /> Yellow Pages SA</label>
-                <label><input type="checkbox" value="brabys" checked /> Brabys SA</label>
+                <label><input type="checkbox" value="brabys" /> Brabys SA</label>
                 <label><input type="checkbox" value="google_places" /> Google Places (API key required)</label>
                 <label><input type="checkbox" value="cipc" /> CIPC Registry</label>
               </div>
             </div>
             <button class="btn btn-primary" onclick="runScrape()"><span id="scrape-btn-text">▶ Start Scrape</span></button>
+          </div>
+
+          <!-- Bulk scrape -->
+          <div class="settings-card" style="margin-bottom:20px; max-width:640px;">
+            <h2>⚡ Bulk Scrape — Hundreds of Businesses</h2>
+            <p style="font-size:.83rem;color:var(--gray600);margin-bottom:16px;">
+              Scrapes Yellow Pages across multiple cities &amp; categories simultaneously.
+              Skips per-business detail fetching so each city×category combination takes ~2s instead of ~30s.
+              Phone/website data is fetched later via audit.
+            </p>
+
+            <div class="form-group">
+              <label>Cities
+                <div class="bulk-toggle-row" style="margin-top:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="toggleAll('bulk-cities', true)">All</button>
+                  <button class="btn btn-ghost btn-sm" onclick="toggleAll('bulk-cities', false)">None</button>
+                  <button class="btn btn-ghost btn-sm" onclick="toggleAll('bulk-cities', true, 5)">Top 5</button>
+                  <button class="btn btn-ghost btn-sm" onclick="toggleAll('bulk-cities', true, 10)">Top 10</button>
+                </div>
+              </label>
+              <div class="bulk-checks" id="bulk-cities" onchange="updateBulkEstimate()">
+                <label><input type="checkbox" value="Cape Town" checked /> Cape Town</label>
+                <label><input type="checkbox" value="Johannesburg" checked /> Johannesburg</label>
+                <label><input type="checkbox" value="Pretoria" checked /> Pretoria</label>
+                <label><input type="checkbox" value="Durban" checked /> Durban</label>
+                <label><input type="checkbox" value="Port Elizabeth" checked /> Port Elizabeth</label>
+                <label><input type="checkbox" value="Bloemfontein" /> Bloemfontein</label>
+                <label><input type="checkbox" value="East London" /> East London</label>
+                <label><input type="checkbox" value="Polokwane" /> Polokwane</label>
+                <label><input type="checkbox" value="Nelspruit" /> Nelspruit</label>
+                <label><input type="checkbox" value="George" /> George</label>
+                <label><input type="checkbox" value="Rustenburg" /> Rustenburg</label>
+                <label><input type="checkbox" value="Pietermaritzburg" /> Pietermaritzburg</label>
+                <label><input type="checkbox" value="Kimberley" /> Kimberley</label>
+                <label><input type="checkbox" value="Witbank" /> Witbank</label>
+                <label><input type="checkbox" value="Welkom" /> Welkom</label>
+                <label><input type="checkbox" value="Stellenbosch" /> Stellenbosch</label>
+                <label><input type="checkbox" value="Paarl" /> Paarl</label>
+                <label><input type="checkbox" value="Knysna" /> Knysna</label>
+                <label><input type="checkbox" value="Mossel Bay" /> Mossel Bay</label>
+                <label><input type="checkbox" value="Worcester" /> Worcester</label>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:14px;">
+              <label>Business Categories
+                <div class="bulk-toggle-row" style="margin-top:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="toggleAll('bulk-cats', true)">All</button>
+                  <button class="btn btn-ghost btn-sm" onclick="toggleAll('bulk-cats', false)">None</button>
+                </div>
+              </label>
+              <div class="bulk-checks" id="bulk-cats" onchange="updateBulkEstimate()">
+                <label><input type="checkbox" value="plumber" checked /> Plumber</label>
+                <label><input type="checkbox" value="electrician" checked /> Electrician</label>
+                <label><input type="checkbox" value="accountant" checked /> Accountant</label>
+                <label><input type="checkbox" value="attorney" checked /> Attorney</label>
+                <label><input type="checkbox" value="dentist" checked /> Dentist</label>
+                <label><input type="checkbox" value="doctor" /> Doctor</label>
+                <label><input type="checkbox" value="salon" checked /> Salon</label>
+                <label><input type="checkbox" value="mechanic" checked /> Mechanic</label>
+                <label><input type="checkbox" value="builder" /> Builder</label>
+                <label><input type="checkbox" value="photographer" /> Photographer</label>
+                <label><input type="checkbox" value="florist" /> Florist</label>
+                <label><input type="checkbox" value="bakery" /> Bakery</label>
+                <label><input type="checkbox" value="cleaning service" /> Cleaning</label>
+                <label><input type="checkbox" value="landscaping" /> Landscaping</label>
+                <label><input type="checkbox" value="pest control" /> Pest Control</label>
+                <label><input type="checkbox" value="locksmith" /> Locksmith</label>
+                <label><input type="checkbox" value="estate agent" /> Estate Agent</label>
+                <label><input type="checkbox" value="physiotherapist" /> Physio</label>
+                <label><input type="checkbox" value="optometrist" /> Optometrist</label>
+                <label><input type="checkbox" value="gym" /> Gym</label>
+                <label><input type="checkbox" value="guesthouse" /> Guesthouse</label>
+                <label><input type="checkbox" value="catering" /> Catering</label>
+                <label><input type="checkbox" value="wedding venue" /> Wedding Venue</label>
+                <label><input type="checkbox" value="printer" /> Printer</label>
+                <label><input type="checkbox" value="insurance broker" /> Insurance</label>
+                <label><input type="checkbox" value="restaurant" /> Restaurant</label>
+                <label><input type="checkbox" value="hardware store" /> Hardware</label>
+                <label><input type="checkbox" value="furniture store" /> Furniture</label>
+                <label><input type="checkbox" value="pharmacist" /> Pharmacy</label>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:14px;">
+              <label>Pages per combination (10 results/page)</label>
+              <select id="bulk-pages" onchange="updateBulkEstimate()" style="width:120px;">
+                <option value="1">1 page (~10)</option>
+                <option value="2" selected>2 pages (~20)</option>
+                <option value="3">3 pages (~30)</option>
+                <option value="5">5 pages (~50)</option>
+              </select>
+            </div>
+
+            <div id="bulk-estimate" class="estimate-badge">Estimated: ~560 businesses</div>
+
+            <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
+              <button class="btn btn-success" onclick="runBulkScrape()"><span id="bulk-btn-text">⚡ Start Bulk Scrape</span></button>
+              <span style="font-size:.78rem;color:var(--gray400);">Runs in background · Prospects auto-refresh when done</span>
+            </div>
           </div>
         </div>
 
@@ -689,6 +805,48 @@
     } catch(e) { toast('❌ ' + e.message); btn.closest('tr').style.opacity = '1'; }
   }
 
+  // ── Bulk Scrape ──────────────────────────────────────────────────────────────
+  function toggleAll(containerId, checked, limit = null) {
+    const boxes = [...document.querySelectorAll(`#${containerId} input[type=checkbox]`)];
+    boxes.forEach((cb, i) => { cb.checked = checked && (limit === null || i < limit); });
+    updateBulkEstimate();
+  }
+
+  function updateBulkEstimate() {
+    const cities = document.querySelectorAll('#bulk-cities input:checked').length;
+    const cats   = document.querySelectorAll('#bulk-cats input:checked').length;
+    const pages  = parseInt(document.getElementById('bulk-pages')?.value || 2);
+    const est    = cities * cats * pages * 10;
+    document.getElementById('bulk-estimate').textContent = `Estimated: ~${est.toLocaleString()} businesses (${cities} cities × ${cats} categories × ${pages} pages)`;
+  }
+
+  async function runBulkScrape() {
+    const cities     = [...document.querySelectorAll('#bulk-cities input:checked')].map(cb => cb.value);
+    const categories = [...document.querySelectorAll('#bulk-cats input:checked')].map(cb => cb.value);
+    const pages      = parseInt(document.getElementById('bulk-pages').value);
+
+    if (!cities.length)     { toast('Select at least one city'); return; }
+    if (!categories.length) { toast('Select at least one category'); return; }
+    if (cities.length * categories.length > 200) { toast('Too many combinations (max 200). Reduce selection.'); return; }
+
+    const btn = document.getElementById('bulk-btn-text');
+    btn.innerHTML = '<span class="spinner"></span> Queuing…';
+
+    try {
+      const r = await api('/scrape_jobs/bulk', {
+        method: 'POST',
+        body: JSON.stringify({ cities, categories, pages_per_combo: pages })
+      });
+      toast(`✅ ${r.message}`);
+      loadJobs('scrape-jobs-list');
+      loadJobs('jobs-list');
+    } catch(e) {
+      toast('❌ ' + e.message);
+    } finally {
+      btn.textContent = '⚡ Start Bulk Scrape';
+    }
+  }
+
   // ── Scraping ─────────────────────────────────────────────────────────────────
   function openScrapeModal() { document.getElementById('scrape-modal').classList.remove('hidden'); }
   function closeScrapeModal() { document.getElementById('scrape-modal').classList.add('hidden'); }
@@ -797,6 +955,7 @@
   }
 
   // ── Init ─────────────────────────────────────────────────────────────────────
+  updateBulkEstimate();
   loadStats();
   loadJobs();
 </script>

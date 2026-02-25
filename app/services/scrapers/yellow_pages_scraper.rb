@@ -12,10 +12,13 @@ class Scrapers::YellowPagesScraper
   NAME_SELECTOR    = "h6"
   ADDRESS_SELECTOR = "p[class*='location_location_name__']"
 
-  def initialize(category:, location:, max_pages: 5)
-    @category  = category.to_s.strip
-    @location  = location.to_s.strip
-    @max_pages = max_pages
+  # fetch_details: true  = visit each business page to get phone + website (slower, ~0.3s/biz)
+  # fetch_details: false = card data only, name+address (fast, good for bulk collection)
+  def initialize(category:, location:, max_pages: 5, fetch_details: true)
+    @category      = category.to_s.strip
+    @location      = location.to_s.strip
+    @max_pages     = max_pages
+    @fetch_details = fetch_details
   end
 
   def scrape
@@ -34,17 +37,19 @@ class Scrapers::YellowPagesScraper
       cards.each do |card|
         name    = card.at_css(NAME_SELECTOR)&.text&.strip
         address = card.at_css(ADDRESS_SELECTOR)&.text&.strip
-        # Detail path is the first <a> on the card, e.g. /biz/store/name/1234
         detail_path = card.at_css('a')&.[]('href')
 
         next if name.blank?
 
-        # Parse city from address (last identifiable city segment)
         city = extract_city(address) || @location.split(',').first.strip.titleize
 
-        # Optionally fetch detail page for phone number (with short delay to be polite)
-        phone, website = fetch_detail_data(detail_path)
-        sleep(0.3)
+        phone, website = if @fetch_details
+          result = fetch_detail_data(detail_path)
+          sleep(0.3)
+          result
+        else
+          [nil, nil]
+        end
 
         results << {
           name:        name,
