@@ -514,6 +514,7 @@
 
             <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
               <button class="btn btn-success" onclick="runBulkScrape()"><span id="bulk-btn-text">⚡ Start Bulk Scrape</span></button>
+              <button class="btn btn-secondary" onclick="runBackfill()" title="Re-scrape existing businesses to fill in missing phone numbers and websites"><span id="backfill-btn-text">📞 Backfill Phone &amp; Website</span></button>
               <span style="font-size:.78rem;color:var(--gray400);">Runs in background · Prospects auto-refresh when done</span>
             </div>
           </div>
@@ -854,6 +855,21 @@
       toast('❌ ' + e.message);
     } finally {
       btn.textContent = '⚡ Start Bulk Scrape';
+    }
+  }
+
+  async function runBackfill() {
+    const btn = document.getElementById('backfill-btn-text');
+    btn.innerHTML = '<span class="spinner"></span> Queuing…';
+    try {
+      const r = await api('/scrape_jobs/backfill', { method: 'POST' });
+      toast('✅ ' + r.message);
+      loadJobs('scrape-jobs-list');
+      loadJobs('jobs-list');
+    } catch(e) {
+      toast('❌ ' + e.message);
+    } finally {
+      btn.textContent = '📞 Backfill Phone & Website';
     }
   }
 

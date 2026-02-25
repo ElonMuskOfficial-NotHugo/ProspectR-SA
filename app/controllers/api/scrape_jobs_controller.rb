@@ -41,6 +41,34 @@ module Api
       }, status: :accepted
     end
 
+    def backfill
+      # Find all unique category+city combos for yellow_pages businesses missing phone or website
+      combos = Business
+        .where(source: 'yellow_pages')
+        .where(phone: [nil, ''])
+        .select(:category, :city)
+        .distinct
+        .map { |b| [b.category, b.city] }
+        .uniq
+
+      if combos.empty?
+        render json: { message: 'All yellow_pages businesses already have contact details.' }, status: :ok
+        return
+      end
+
+      jobs_created = combos.map do |(category, city)|
+        next if category.blank? || city.blank?
+        job = ScrapeJob.create!(source: 'yellow_pages', category: category, location: city)
+        ScrapeWorkerJob.perform_later(job.id, fetch_details: true, max_pages: 3)
+        job
+      end.compact
+
+      render json: {
+        message:      "Backfill queued for #{jobs_created.length} city×category combos",
+        jobs_queued:  jobs_created.length
+      }, status: :accepted
+    end
+
     def show
       render json: serialize(ScrapeJob.find(params[:id]))
     rescue ActiveRecord::RecordNotFound
