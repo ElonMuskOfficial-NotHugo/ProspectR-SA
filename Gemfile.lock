@@ -131,6 +131,8 @@ GEM
     nio4r (2.7.5)
     nokogiri (1.19.1-x64-mingw-ucrt)
       racc (~> 1.4)
+    nokogiri (1.19.1-x86_64-linux-gnu)
+      racc (~> 1.4)
     pdf-core (0.10.0)
     pp (0.6.3)
       prettyprint
@@ -197,7 +199,8 @@ GEM
     reline (0.6.3)
       io-console (~> 0.5)
     securerandom (0.4.1)
-    sqlite3 (2.9.0-x64-mingw-ucrt)
+    sqlite3 (2.9.1-x64-mingw-ucrt)
+    sqlite3 (2.9.1-x86_64-linux-gnu)
     stringio (3.2.0)
     thor (1.5.0)
     timeout (0.6.0)
@@ -218,6 +221,7 @@ GEM
 
 PLATFORMS
   x64-mingw-ucrt
+  x86_64-linux
 
 DEPENDENCIES
   bootsnap
